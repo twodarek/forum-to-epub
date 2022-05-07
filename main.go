@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"flag"
+	"fmt"
 	"github.com/bmaupin/go-epub"
 	"github.com/bmaupin/go-htmlutil"
 	"golang.org/x/net/html"
 	"log"
+	"net/http"
+	"os"
 	"strings"
 )
 
@@ -15,6 +20,13 @@ type epubChapter struct {
 }
 
 func main() {
+	log.SetFlags(0)
+	inputFilePath := flag.String("input-file", "", "path to file containing pages that you want to include")
+	flag.Parse()
+
+	if *inputFilePath == "" {
+		log.Fatalf("Error: input-file required, but not found")
+	}
 
 	title := "The Last Angel"
 	author := "Proximal Flame"
@@ -23,11 +35,58 @@ func main() {
 	book := epub.NewEpub(title)
 	book.SetAuthor(author)
 
-	// Get the posts
+	inputFile, err := os.Open(*inputFilePath)
+	if err != nil {
+		log.Fatalf("Error: unable to open input file: %s", err)
+	}
+	defer inputFile.Close()
+
+	chapterLinks := []string{}
+	scanner := bufio.NewScanner(inputFile)
+	for scanner.Scan() {
+		chapterLinks = append(chapterLinks, scanner.Text())
+		fmt.Println(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("Error: unable to read all lines from file: %s", err)
+	}
 
 	chapters := []epubChapter{}
-	// Write to epub
+	// Get the posts
 
+	for count, pageLink := range chapterLinks {
+		resp, err := http.Get(pageLink)
+		if err != nil {
+			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, pageLink, err)
+		}
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				panic(err)
+			}
+		}()
+
+		doc, err := html.Parse(resp.Body)
+		if err != nil {
+			log.Fatalf("Parse error: %s", err)
+		}
+
+		postAnchor := strings.Split(pageLink, "#")[1]
+		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
+		articleBodyWrapper := htmlutil.GetFirstHtmlNode(articleNode, "article", "class", "message-body")
+		articleBody := htmlutil.GetFirstHtmlNode(articleBodyWrapper, "div", "class", "bbWrapper")
+
+		chapterArray := []html.Node{*articleBody}
+
+		chapter := epubChapter{
+			title:    fmt.Sprintf("Chapter %d", count),
+			filename: "",
+			nodes:    chapterArray,
+		}
+		chapters = append(chapters, chapter)
+	}
+
+	// Write to epub
 	epubCSSPath, err := book.AddCSS(epubCSSFile, "")
 	if err != nil{
 		log.Printf("Error occurred while attempting to add css: %s", err)
@@ -62,7 +121,7 @@ func main() {
 	}
 
 
-	err := book.Write("thwLastAngel.epub")
+	err = book.Write("thwLastAngel.epub")
 	if err != nil {
 		log.Printf("Error in writing out the resulting file: %s", err)
 	}
