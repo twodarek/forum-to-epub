@@ -41,10 +41,10 @@ func main() {
 	}
 	defer inputFile.Close()
 
-	chapterLinks := []string{}
+	chapterTitlesAndLinks := [][]string{}
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
-		chapterLinks = append(chapterLinks, scanner.Text())
+		chapterTitlesAndLinks = append(chapterTitlesAndLinks, strings.Split(scanner.Text(), ","))
 		fmt.Println(scanner.Text())
 	}
 
@@ -55,10 +55,10 @@ func main() {
 	chapters := []epubChapter{}
 	// Get the posts
 
-	for count, pageLink := range chapterLinks {
-		resp, err := http.Get(pageLink)
+	for count, chapterLink := range chapterTitlesAndLinks {
+		resp, err := http.Get(chapterLink[1])
 		if err != nil {
-			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, pageLink, err)
+			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, chapterLink[1], err)
 		}
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
@@ -71,7 +71,7 @@ func main() {
 			log.Fatalf("Parse error: %s", err)
 		}
 
-		postAnchor := strings.Split(pageLink, "#")[1]
+		postAnchor := strings.Split(chapterLink[1], "#")[1]
 		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
 		articleBodyWrapper := htmlutil.GetFirstHtmlNode(articleNode, "article", "class", "message-body")
 		articleBody := htmlutil.GetFirstHtmlNode(articleBodyWrapper, "div", "class", "bbWrapper")
@@ -79,7 +79,7 @@ func main() {
 		chapterArray := []html.Node{*articleBody}
 
 		chapter := epubChapter{
-			title:    fmt.Sprintf("Chapter %d", count),
+			title:    chapterLink[0],
 			filename: "",
 			nodes:    chapterArray,
 		}
