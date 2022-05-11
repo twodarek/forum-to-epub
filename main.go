@@ -58,9 +58,9 @@ func main() {
 	log.Printf("chapterTitlesAndLinks: %s", chapterTitlesAndLinks)
 
 	for count, chapterLink := range chapterTitlesAndLinks {
-		resp, err := http.Get(chapterLink[1])
+		resp, err := http.Get(chapterLink[0])
 		if err != nil {
-			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, chapterLink[1], err)
+			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, chapterLink[0], err)
 		}
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
@@ -73,20 +73,15 @@ func main() {
 			log.Fatalf("Parse error: %s", err)
 		}
 
-		postAnchor := strings.Split(chapterLink[1], "#")[1]
+		postAnchor := strings.Split(chapterLink[0], "#")[1]
 		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
-		log.Println(articleNode)
-		log.Println(postAnchor)
-		articleBodyWrapper := htmlutil.GetFirstHtmlNode(articleNode, "article", "class", "message-body")
-		log.Println(articleBodyWrapper)
-		articleBody := htmlutil.GetFirstHtmlNode(articleBodyWrapper, "div", "class", "bbWrapper")
-		log.Println(articleBody)
-		log.Printf("title: %s, text: %s", chapterLink[0], chapterLink[1])
+		articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "bbWrapper")
+		log.Printf("title: %s, text: %s", chapterLink[1], chapterLink[0])
 
 		chapterArray := []html.Node{*articleBody}
 
 		chapter := epubChapter{
-			title:    chapterLink[0],
+			title:    chapterLink[1],
 			filename: "",
 			nodes:    chapterArray,
 		}
@@ -125,8 +120,6 @@ func main() {
 			}
 			chapterContent += nodeContent
 		}
-
-		log.Printf("chapterContent: %s", chapterContent)
 
 		_, err := book.AddSection(chapterContent, chapter.title, chapter.filename, epubCSSPath)
 		if err != nil {
