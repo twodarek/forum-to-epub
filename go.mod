@@ -4,8 +4,8 @@ go 1.17
 
 require (
 	github.com/bmaupin/go-epub v0.11.0
-	github.com/bmaupin/go-htmlutil v0.0.0-20160828203923-a9558777bf4e
-	golang.org/x/net v0.0.0-20210505024714-0287a6fb4125
+	github.com/twodarek/go-htmlutil v0.0.0-20220511000029-cf6d36fec8c5
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
 )
 
 require (

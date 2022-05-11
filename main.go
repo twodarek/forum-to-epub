@@ -3,9 +3,8 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"github.com/bmaupin/go-epub"
-	"github.com/bmaupin/go-htmlutil"
+	"github.com/twodarek/go-htmlutil"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
@@ -30,7 +29,8 @@ func main() {
 
 	title := "The Last Angel"
 	author := "Proximal Flame"
-	epubCSSFile := "assets/styles/epub.css"
+	epubCSSFile := "assets/epub.css"
+	preFontFile := "assets/SourceCodePro-Regular.ttf"
 
 	book := epub.NewEpub(title)
 	book.SetAuthor(author)
@@ -45,7 +45,7 @@ func main() {
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
 		chapterTitlesAndLinks = append(chapterTitlesAndLinks, strings.Split(scanner.Text(), ","))
-		fmt.Println(scanner.Text())
+		log.Printf(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -54,6 +54,8 @@ func main() {
 
 	chapters := []epubChapter{}
 	// Get the posts
+
+	log.Printf("chapterTitlesAndLinks: %s", chapterTitlesAndLinks)
 
 	for count, chapterLink := range chapterTitlesAndLinks {
 		resp, err := http.Get(chapterLink[1])
@@ -73,8 +75,13 @@ func main() {
 
 		postAnchor := strings.Split(chapterLink[1], "#")[1]
 		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
+		log.Println(articleNode)
+		log.Println(postAnchor)
 		articleBodyWrapper := htmlutil.GetFirstHtmlNode(articleNode, "article", "class", "message-body")
+		log.Println(articleBodyWrapper)
 		articleBody := htmlutil.GetFirstHtmlNode(articleBodyWrapper, "div", "class", "bbWrapper")
+		log.Println(articleBody)
+		log.Printf("title: %s, text: %s", chapterLink[0], chapterLink[1])
 
 		chapterArray := []html.Node{*articleBody}
 
@@ -89,6 +96,11 @@ func main() {
 	// Write to epub
 	epubCSSPath, err := book.AddCSS(epubCSSFile, "")
 	if err != nil{
+		log.Printf("Error occurred while attempting to add css: %s", err)
+	}
+
+	_, err = book.AddFont(preFontFile, "")
+	if err != nil {
 		log.Printf("Error occurred while attempting to add css: %s", err)
 	}
 
@@ -109,10 +121,12 @@ func main() {
 
 			nodeContent, err := htmlutil.HtmlNodeToString(&chapterNode)
 			if err != nil {
-				log.Printf("Error in adding a chapter to the book: %s", err)
+				log.Printf("Error in dumping html to string while adding a chapter to the book: %s", err)
 			}
 			chapterContent += nodeContent
 		}
+
+		log.Printf("chapterContent: %s", chapterContent)
 
 		_, err := book.AddSection(chapterContent, chapter.title, chapter.filename, epubCSSPath)
 		if err != nil {
@@ -121,7 +135,7 @@ func main() {
 	}
 
 
-	err = book.Write("thwLastAngel.epub")
+	err = book.Write("theLastAngel.epub")
 	if err != nil {
 		log.Printf("Error in writing out the resulting file: %s", err)
 	}
