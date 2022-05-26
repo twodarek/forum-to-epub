@@ -20,15 +20,18 @@ type epubChapter struct {
 
 func main() {
 	log.SetFlags(0)
-	inputFilePath := flag.String("input-file", "", "path to file containing pages that you want to include")
+	inputFilePath := flag.String("input-file", "", "The path to file containing pages that you want to include")
+	titleIn := flag.String("title", "The Last Angel", "The title of the book")
+	authorIn := flag.String("author", "Proximal Flame", "The author of the book")
 	flag.Parse()
 
 	if *inputFilePath == "" {
 		log.Fatalf("Error: input-file required, but not found")
 	}
 
-	title := "The Last Angel"
-	author := "Proximal Flame"
+	title := *(titleIn)
+	author := *(authorIn)
+
 	epubCSSFile := "assets/epub.css"
 	preFontFile := "assets/SourceCodePro-Regular.ttf"
 
@@ -41,10 +44,28 @@ func main() {
 	}
 	defer inputFile.Close()
 
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
 	chapterTitlesAndLinks := [][]string{}
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
-		chapterTitlesAndLinks = append(chapterTitlesAndLinks, strings.Split(scanner.Text(), ","))
+		line := strings.Split(scanner.Text(), ",")
+		if !strings.Contains(line[0], "#") {
+			resp, err := httpClient.Get(line[0])
+			if err != nil {
+				log.Fatalf("Error: unable to resolve actual url of post: %s, %s", line[0], err)
+			}
+			newUrl := resp.Header.Get("location")
+			if newUrl == "" {
+				log.Fatalf("Error: unable to resolve actual url of post, location header empty/nonexistant: %s, %s", line[0], err)
+			}
+			line[0] = newUrl
+		}
+		chapterTitlesAndLinks = append(chapterTitlesAndLinks, line)
 		log.Printf(scanner.Text())
 	}
 
