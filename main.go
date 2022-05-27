@@ -23,6 +23,7 @@ func main() {
 	inputFilePath := flag.String("input-file", "", "The path to file containing pages that you want to include")
 	titleIn := flag.String("title", "The Last Angel", "The title of the book")
 	authorIn := flag.String("author", "Proximal Flame", "The author of the book")
+	destFileIn := flag.String("output-file", "theLastAngel.pub", "The location of the intended output file")
 	flag.Parse()
 
 	if *inputFilePath == "" {
@@ -31,6 +32,7 @@ func main() {
 
 	title := *(titleIn)
 	author := *(authorIn)
+	destFile := *(destFileIn)
 
 	epubCSSFile := "assets/epub.css"
 	preFontFile := "assets/SourceCodePro-Regular.ttf"
@@ -149,7 +151,7 @@ func main() {
 	}
 
 
-	err = book.Write("theLastAngel.epub")
+	err = book.Write(destFile)
 	if err != nil {
 		log.Printf("Error in writing out the resulting file: %s", err)
 	}
