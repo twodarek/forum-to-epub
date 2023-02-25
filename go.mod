@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/bmaupin/go-epub v1.0.1
 	github.com/twodarek/go-htmlutil v0.0.0-20220511000029-cf6d36fec8c5
-	golang.org/x/net v0.0.0-20221002022538-bcab6841153b
+	golang.org/x/net v0.7.0
 )
 
 require (
