@@ -104,6 +104,13 @@ func (e *Epub) WriteTo(dst io.Writer) (int64, error) {
 
 	// Must be called after:
 	// createEpubFolders()
+	err = e.writeAudios(tempDir)
+	if err != nil {
+		return 0, err
+	}
+
+	// Must be called after:
+	// createEpubFolders()
 	e.writeSections(tempDir)
 
 	// Must be called after:
@@ -116,6 +123,7 @@ func (e *Epub) WriteTo(dst io.Writer) (int64, error) {
 	// writeCSSFiles()
 	// writeImages()
 	// writeVideos()
+	// writeAudios()
 	// writeSections()
 	// writeToc()
 	e.writePackageFile(tempDir)
@@ -255,7 +263,7 @@ func (e *Epub) writeEpub(rootEpubDir string, dst io.Writer) (int64, error) {
 		}
 
 		var w io.Writer
-		if path == filepath.Join(rootEpubDir, mimetypeFilename) {
+		if filepath.FromSlash(path) == filepath.Join(rootEpubDir, mimetypeFilename) {
 			// Skip the mimetype file if it's already been written
 			if skipMimetypeFile == true {
 				return nil
@@ -335,6 +343,11 @@ func (e *Epub) writeVideos(rootEpubDir string) error {
 	return e.writeMedia(rootEpubDir, e.videos, VideoFolderName)
 }
 
+// Get audios from their source and save them in the temporary directory
+func (e *Epub) writeAudios(rootEpubDir string) error {
+	return e.writeMedia(rootEpubDir, e.audios, AudioFolderName)
+}
+
 // Get media from their source and save them in the temporary directory
 func (e *Epub) writeMedia(rootEpubDir string, mediaMap map[string]string, mediaFolderName string) error {
 	if len(mediaMap) > 0 {
@@ -407,6 +420,8 @@ func (e *Epub) writePackageFile(rootEpubDir string) {
 // Write the section files to the temporary directory and add the sections to
 // the TOC and package files
 func (e *Epub) writeSections(rootEpubDir string) {
+	var index int
+
 	if len(e.sections) > 0 {
 		// If a cover was set, add it to the package spine first so it shows up
 		// first in the reading order
@@ -414,7 +429,7 @@ func (e *Epub) writeSections(rootEpubDir string) {
 			e.pkg.addToSpine(e.cover.xhtmlFilename)
 		}
 
-		for i, section := range e.sections {
+		for _, section := range e.sections {
 			// Set the title of the cover page XHTML to the title of the EPUB
 			if section.filename == e.cover.xhtmlFilename {
 				section.xhtml.setTitle(e.Title())
@@ -422,17 +437,36 @@ func (e *Epub) writeSections(rootEpubDir string) {
 
 			sectionFilePath := filepath.Join(rootEpubDir, contentFolderName, xhtmlFolderName, section.filename)
 			section.xhtml.write(sectionFilePath)
-
 			relativePath := filepath.Join(xhtmlFolderName, section.filename)
-			// Don't add pages without titles or the cover to the TOC
-			if section.xhtml.Title() != "" && section.filename != e.cover.xhtmlFilename {
-				e.toc.addSection(i, section.xhtml.Title(), relativePath)
-			}
+
 			// The cover page should have already been added to the spine first
 			if section.filename != e.cover.xhtmlFilename {
 				e.pkg.addToSpine(section.filename)
 			}
 			e.pkg.addToManifest(section.filename, relativePath, mediaTypeXhtml, "")
+
+			// Don't add pages without titles or the cover to the TOC
+			if section.xhtml.Title() != "" && section.filename != e.cover.xhtmlFilename {
+				e.toc.addSection(index, section.xhtml.Title(), relativePath)
+
+				// Add subsections
+				if section.children != nil {
+					for _, child := range *section.children {
+						index += 1
+						relativeSubPath := filepath.Join(xhtmlFolderName, child.filename)
+						e.toc.addSubSection(relativePath, index, child.xhtml.Title(), relativeSubPath)
+
+						subSectionFilePath := filepath.Join(rootEpubDir, contentFolderName, xhtmlFolderName, child.filename)
+						child.xhtml.write(subSectionFilePath)
+
+						// Add subsection to spine
+						e.pkg.addToSpine(child.filename)
+						e.pkg.addToManifest(child.filename, relativeSubPath, mediaTypeXhtml, "")
+					}
+				}
+			}
+
+			index += 1
 		}
 	}
 }

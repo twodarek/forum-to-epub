@@ -44,7 +44,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error: unable to open input file: %s", err)
 	}
-	defer inputFile.Close()
 
 	httpClient := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
