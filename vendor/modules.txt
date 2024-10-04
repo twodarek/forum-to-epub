@@ -4,7 +4,7 @@ github.com/bmaupin/go-epub
 github.com/bmaupin/go-epub/internal/storage
 github.com/bmaupin/go-epub/internal/storage/memory
 github.com/bmaupin/go-epub/internal/storage/osfs
-# github.com/gabriel-vasile/mimetype v1.4.2
+# github.com/gabriel-vasile/mimetype v1.4.5
 ## explicit; go 1.20
 github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
@@ -13,13 +13,13 @@ github.com/gabriel-vasile/mimetype/internal/magic
 # github.com/gofrs/uuid v4.4.0+incompatible
 ## explicit
 github.com/gofrs/uuid
-# github.com/twodarek/go-htmlutil v0.0.0-20221003211526-1affa26234af
+# github.com/twodarek/go-htmlutil v0.0.0-20240210050341-693b71a7c438
 ## explicit; go 1.19
 github.com/twodarek/go-htmlutil
 # github.com/vincent-petithory/dataurl v1.0.0
 ## explicit
 github.com/vincent-petithory/dataurl
-# golang.org/x/net v0.23.0
+# golang.org/x/net v0.29.0
 ## explicit; go 1.18
 golang.org/x/net/html
 golang.org/x/net/html/atom

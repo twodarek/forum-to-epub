@@ -5,6 +5,8 @@ package htmlutil
 
 import (
 	"bytes"
+	"reflect"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -12,13 +14,31 @@ import (
 // GetAllHtmlNodes is a convenience function for GetHtmlNodes() that returns all
 // matching HTML nodes.
 func GetAllHtmlNodes(n *html.Node, tag string, attr string, attrValue string) []*html.Node {
-	return GetHtmlNodes(n, tag, attr, attrValue, -1)
+	return GetHtmlNodes(n, tag, attr, attrValue, -1, false)
+}
+
+// GetAllHtmlNodesAllowAttrSubstring is a convenience function for GetHtmlNodes() that returns all
+// matching HTML nodes, allowing for an attribute value to be a superstring of the string passed in.
+func GetAllHtmlNodesAllowAttrSubstring(n *html.Node, tag string, attr string, attrValue string) []*html.Node {
+	return GetHtmlNodes(n, tag, attr, attrValue, -1, true)
 }
 
 // GetFirstHtmlNode is a convenience function for GetHtmlNodes() that returns
 // the first matching node.
 func GetFirstHtmlNode(n *html.Node, tag string, attr string, attrValue string) *html.Node {
-	htmlNodes := GetHtmlNodes(n, tag, attr, attrValue, 1)
+	htmlNodes := GetHtmlNodes(n, tag, attr, attrValue, 1, false)
+
+	if len(htmlNodes) > 0 {
+		return htmlNodes[0]
+	}
+
+	return &html.Node{}
+}
+
+// GetFirstHtmlNodeAllowAttrSubstring is a convenience function for GetHtmlNodes() that returns
+// the first matching node, allowing for an attribute value to be a superstring of the string passed in.
+func GetFirstHtmlNodeAllowAttrSubstring(n *html.Node, tag string, attr string, attrValue string) *html.Node {
+	htmlNodes := GetHtmlNodes(n, tag, attr, attrValue, 1, true)
 
 	if len(htmlNodes) > 0 {
 		return htmlNodes[0]
@@ -34,7 +54,7 @@ func GetFirstHtmlNode(n *html.Node, tag string, attr string, attrValue string) *
 // they will not be used as search criteria.
 //
 // If the count is -1, all nodes will be returned.
-func GetHtmlNodes(n *html.Node, tag string, attr string, attrValue string, count int) []*html.Node {
+func GetHtmlNodes(n *html.Node, tag string, attr string, attrValue string, count int, allowAttrSubstring bool) []*html.Node {
 	var foundNodes []*html.Node
 
 	var f func(*html.Node)
@@ -50,7 +70,7 @@ func GetHtmlNodes(n *html.Node, tag string, attr string, attrValue string, count
 			} else {
 				for _, a := range n.Attr {
 					if attr == "" || a.Key == attr {
-						if attrValue == "" || a.Val == attrValue {
+						if attrValue == "" || a.Val == attrValue || isStringSubstring(a.Val, attrValue, allowAttrSubstring) {
 							foundNodes = append(foundNodes, n)
 							if count != -1 && len(foundNodes) >= count {
 								break
@@ -71,6 +91,13 @@ func GetHtmlNodes(n *html.Node, tag string, attr string, attrValue string, count
 	f(n)
 
 	return foundNodes
+}
+
+func isStringSubstring(value, substring string, allowAttrSubstring bool) bool {
+	if !allowAttrSubstring || reflect.TypeOf(value).String() != "string" {
+		return false
+	}
+	return strings.Contains(value, substring)
 }
 
 // HtmlNodeToString converts an HTML node to a string for easier printing.
@@ -117,7 +144,7 @@ func RemoveHtmlAttrs(node *html.Node, tag string, attr string, attrValue string,
 		}
 	}
 
-	for _, nodeToProcess := range GetHtmlNodes(node, tag, attr, attrValue, count) {
+	for _, nodeToProcess := range GetHtmlNodes(node, tag, attr, attrValue, count, false) {
 		processNode(nodeToProcess, attr, attrValue)
 	}
 }
@@ -142,7 +169,7 @@ func RemoveFirstHtmlNode(n *html.Node, tag string, attr string, attrValue string
 //
 // If the count is -1, all nodes meeting the criteria will be removed.
 func RemoveHtmlNodes(n *html.Node, tag string, attr string, attrValue string, count int) {
-	nodesToDelete := GetHtmlNodes(n, tag, attr, attrValue, count)
+	nodesToDelete := GetHtmlNodes(n, tag, attr, attrValue, count, false)
 
 	if len(nodesToDelete) > 0 {
 		// Delete nodes in reverse order (so the children get deleted first)
