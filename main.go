@@ -67,7 +67,7 @@ func main() {
 			line[0] = newUrl
 		}
 		chapterTitlesAndLinks = append(chapterTitlesAndLinks, line)
-		log.Printf(scanner.Text())
+		log.Printf("%s", scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -112,7 +112,7 @@ func main() {
 
 	// Write to epub
 	epubCSSPath, err := book.AddCSS(epubCSSFile, "")
-	if err != nil{
+	if err != nil {
 		log.Printf("Error occurred while attempting to add css: %s", err)
 	}
 
@@ -148,7 +148,6 @@ func main() {
 			log.Printf("Error in adding a chapter to the book: %s", err)
 		}
 	}
-
 
 	err = book.Write(destFile)
 	if err != nil {
