@@ -71,7 +71,7 @@ func main() {
 			}
 		}
 		chapterTitlesAndLinks = append(chapterTitlesAndLinks, line)
-		log.Printf(scanner.Text())
+		log.Printf("%s", scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
