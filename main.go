@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"github.com/bmaupin/go-epub"
 	"github.com/twodarek/go-htmlutil"
 	"golang.org/x/net/html"
@@ -74,11 +75,17 @@ func main() {
 		log.Fatalf("Error: unable to read all lines from file: %s", err)
 	}
 
-	chapters := []epubChapter{}
-	// Get the posts
-
 	log.Printf("chapterTitlesAndLinks: %s", chapterTitlesAndLinks)
 
+	firstChapterLink := strings.ReplaceAll(chapterTitlesAndLinks[0][0], "https://", "")
+	firstChapterLink = strings.ReplaceAll(firstChapterLink, "www.", "")
+	firstChapterLink = strings.ReplaceAll(firstChapterLink, "forums.", "")
+	websiteDomain := strings.Split(firstChapterLink, "/")[0]
+	log.Printf("Checking domain name: %s", websiteDomain)
+
+	chapters := []epubChapter{}
+
+	// Get the posts
 	for count, chapterLink := range chapterTitlesAndLinks {
 		resp, err := http.Get(chapterLink[0])
 		if err != nil {
@@ -95,12 +102,24 @@ func main() {
 			log.Fatalf("Parse error: %s", err)
 		}
 
-		postAnchor := strings.Split(chapterLink[0], "#")[1]
-		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
-		articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "bbWrapper")
-		log.Printf("title: %s, text: %s", chapterLink[1], chapterLink[0])
+		chapterArray := []html.Node{}
+		switch websiteDomain {
+		case "spacebattles.com":
+			fmt.Print("spacebattles!")
+			postAnchor := strings.Split(chapterLink[0], "#")[1]
+			articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
+			articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "bbWrapper")
+			chapterArray = append(chapterArray, *articleBody)
+			break
+		case "fanfiction.net":
+			fmt.Print("fanfiction!")
+			os.Exit(0)
+		default:
+			fmt.Print("You're attempting to pull in from an unsupported website, please file a bug in https://github.com/twodarek/forum-to-epub/issues\n")
+			os.Exit(1)
+		}
 
-		chapterArray := []html.Node{*articleBody}
+		log.Printf("title: %s, text: %s", chapterLink[1], chapterLink[0])
 
 		chapter := epubChapter{
 			title:    chapterLink[1],
@@ -112,7 +131,7 @@ func main() {
 
 	// Write to epub
 	epubCSSPath, err := book.AddCSS(epubCSSFile, "")
-	if err != nil{
+	if err != nil {
 		log.Printf("Error occurred while attempting to add css: %s", err)
 	}
 
@@ -148,7 +167,6 @@ func main() {
 			log.Printf("Error in adding a chapter to the book: %s", err)
 		}
 	}
-
 
 	err = book.Write(destFile)
 	if err != nil {
