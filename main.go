@@ -120,15 +120,12 @@ func main() {
 			fmt.Println("AO3!")
 			articleNode := htmlutil.GetFirstHtmlNode(doc, "div", "id", "workskin")
 			articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "chapter")
-			fmt.Printf("Chapter %s: %+v", chapterLink[1], articleBody)
 			chapterArray = append(chapterArray, *articleBody)
 			break
 		default:
 			fmt.Println("You're attempting to pull in from an unsupported website, please file a bug in https://github.com/twodarek/forum-to-epub/issues")
 			os.Exit(1)
 		}
-
-		log.Printf("title: %s, link: %s", chapterLink[1], chapterLink[0])
 
 		chapter := epubChapter{
 			title:    chapterLink[1],
