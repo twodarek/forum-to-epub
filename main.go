@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"github.com/bmaupin/go-epub"
 	"github.com/twodarek/go-htmlutil"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -23,7 +25,7 @@ func main() {
 	inputFilePath := flag.String("input-file", "", "The path to file containing pages that you want to include")
 	titleIn := flag.String("title", "The Last Angel", "The title of the book")
 	authorIn := flag.String("author", "Proximal Flame", "The author of the book")
-	destFileIn := flag.String("output-file", "theLastAngel.pub", "The location of the intended output file")
+	destFileIn := flag.String("output-file", "theLastAngel.epub", "The location of the intended output file")
 	flag.Parse()
 
 	if *inputFilePath == "" {
@@ -55,16 +57,18 @@ func main() {
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), ",")
-		if !strings.Contains(line[0], "#") {
-			resp, err := httpClient.Get(line[0])
-			if err != nil {
-				log.Fatalf("Error: unable to resolve actual url of post: %s, %s", line[0], err)
+		if strings.Contains(line[0], "spacebattles") {
+			if !strings.Contains(line[0], "#") {
+				resp, err := httpClient.Get(line[0])
+				if err != nil {
+					log.Fatalf("Error: unable to resolve actual url of post: %s, %s", line[0], err)
+				}
+				newUrl := resp.Header.Get("location")
+				if newUrl == "" {
+					log.Fatalf("Error: unable to resolve actual url of post, location header empty/nonexistant: %s, %s", line[0], err)
+				}
+				line[0] = newUrl
 			}
-			newUrl := resp.Header.Get("location")
-			if newUrl == "" {
-				log.Fatalf("Error: unable to resolve actual url of post, location header empty/nonexistant: %s, %s", line[0], err)
-			}
-			line[0] = newUrl
 		}
 		chapterTitlesAndLinks = append(chapterTitlesAndLinks, line)
 		log.Printf("%s", scanner.Text())
@@ -74,11 +78,19 @@ func main() {
 		log.Fatalf("Error: unable to read all lines from file: %s", err)
 	}
 
-	chapters := []epubChapter{}
-	// Get the posts
-
 	log.Printf("chapterTitlesAndLinks: %s", chapterTitlesAndLinks)
 
+	// Figure out which website this is
+	firstChapterUri, err := url.ParseRequestURI(chapterTitlesAndLinks[0][0])
+	if err != nil {
+		log.Fatalf("Error parsing first chapter link: %s Error: %s", chapterTitlesAndLinks[0][0], err)
+	}
+	websiteDomain := firstChapterUri.Hostname()
+	log.Printf("Checking domain name: %s", websiteDomain)
+
+	chapters := []epubChapter{}
+
+	// Get the posts
 	for count, chapterLink := range chapterTitlesAndLinks {
 		resp, err := http.Get(chapterLink[0])
 		if err != nil {
@@ -95,12 +107,25 @@ func main() {
 			log.Fatalf("Parse error: %s", err)
 		}
 
-		postAnchor := strings.Split(chapterLink[0], "#")[1]
-		articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
-		articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "bbWrapper")
-		log.Printf("title: %s, text: %s", chapterLink[1], chapterLink[0])
-
-		chapterArray := []html.Node{*articleBody}
+		chapterArray := []html.Node{}
+		switch websiteDomain {
+		case "forums.spacebattles.com":
+			fmt.Println("spacebattles!")
+			postAnchor := strings.Split(chapterLink[0], "#")[1]
+			articleNode := htmlutil.GetFirstHtmlNode(doc, "article", "data-content", postAnchor)
+			articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "bbWrapper")
+			chapterArray = append(chapterArray, *articleBody)
+			break
+		case "archiveofourown.org":
+			fmt.Println("AO3!")
+			articleNode := htmlutil.GetFirstHtmlNode(doc, "div", "id", "workskin")
+			articleBody := htmlutil.GetFirstHtmlNode(articleNode, "div", "class", "chapter")
+			chapterArray = append(chapterArray, *articleBody)
+			break
+		default:
+			fmt.Println("You're attempting to pull in from an unsupported website, please file a bug in https://github.com/twodarek/forum-to-epub/issues")
+			os.Exit(1)
+		}
 
 		chapter := epubChapter{
 			title:    chapterLink[1],
@@ -138,7 +163,7 @@ func main() {
 
 			nodeContent, err := htmlutil.HtmlNodeToString(&chapterNode)
 			if err != nil {
-				log.Printf("Error in dumping html to string while adding a chapter to the book: %s", err)
+				log.Printf("Error in dumping html to string while adding chapter %s to the book: %s", chapter.title, err)
 			}
 			chapterContent += nodeContent
 		}

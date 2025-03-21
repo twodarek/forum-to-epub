@@ -12,6 +12,7 @@
 *.out
 
 .idea
+chapterFiles
 
 # Disallow bin
 forum-to-epub
