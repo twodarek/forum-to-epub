@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/bmaupin/go-epub"
+	"github.com/twodarek/go-epub"
 	"github.com/twodarek/go-htmlutil"
 	"golang.org/x/net/html"
 	"log"

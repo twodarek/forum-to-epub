@@ -10,7 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v3"
 )
 
 // UnableToCreateEpubError is thrown by Write if it cannot create the destination EPUB file

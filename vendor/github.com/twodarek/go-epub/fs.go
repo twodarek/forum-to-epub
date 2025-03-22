@@ -3,9 +3,9 @@ package epub
 import (
 	"os"
 
-	"github.com/bmaupin/go-epub/internal/storage"
-	"github.com/bmaupin/go-epub/internal/storage/memory"
-	"github.com/bmaupin/go-epub/internal/storage/osfs"
+	"github.com/twodarek/go-epub/internal/storage"
+	"github.com/twodarek/go-epub/internal/storage/memory"
+	"github.com/twodarek/go-epub/internal/storage/osfs"
 )
 
 type FSType int
