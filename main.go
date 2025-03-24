@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type epubChapter struct {
@@ -53,7 +54,7 @@ func main() {
 		},
 	}
 
-	chapterTitlesAndLinks := [][]string{}
+	chapterTitlesAndLinks := make([][]string, 0)
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
 		line := strings.Split(scanner.Text(), ",")
@@ -71,7 +72,6 @@ func main() {
 			}
 		}
 		chapterTitlesAndLinks = append(chapterTitlesAndLinks, line)
-		log.Printf("%s", scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -88,7 +88,7 @@ func main() {
 	websiteDomain := firstChapterUri.Hostname()
 	log.Printf("Checking domain name: %s", websiteDomain)
 
-	chapters := []epubChapter{}
+	chapters := make([]epubChapter, 0)
 
 	// Get the posts
 	for count, chapterLink := range chapterTitlesAndLinks {
@@ -96,6 +96,7 @@ func main() {
 		if err != nil {
 			log.Printf("Error: Unable to get link %d, %s, because of error %s", count, chapterLink[0], err)
 		}
+
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
 				panic(err)
@@ -107,7 +108,7 @@ func main() {
 			log.Fatalf("Parse error: %s", err)
 		}
 
-		chapterArray := []html.Node{}
+		chapterArray := make([]html.Node, 0)
 		switch websiteDomain {
 		case "forums.spacebattles.com":
 			fmt.Println("spacebattles!")
@@ -133,6 +134,8 @@ func main() {
 			nodes:    chapterArray,
 		}
 		chapters = append(chapters, chapter)
+		fmt.Printf("Processed chapter title: %s, url: %s\n", chapterLink[1], chapterLink[0])
+		time.Sleep(30 * time.Second)
 	}
 
 	// Write to epub
