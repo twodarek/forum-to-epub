@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/twodarek/go-epub v1.1.2
 	github.com/twodarek/go-htmlutil v0.0.0-20250321124109-da2a413d046b
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
