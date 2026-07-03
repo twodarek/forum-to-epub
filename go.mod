@@ -1,11 +1,11 @@
 module github.com/twodarek/forum-to-epub
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/twodarek/go-epub v1.1.2
 	github.com/twodarek/go-htmlutil v0.0.0-20250322012720-9187c38f4573
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.55.0
 )
 
 require (
